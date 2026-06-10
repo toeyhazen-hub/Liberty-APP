@@ -168,6 +168,18 @@ select option{background:var(--white);color:var(--text)}
 .tot-lbl{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:12px}
 .tot-val{font-size:26px;font-weight:800;color:var(--text);margin-bottom:5px;line-height:1}
 .tot-box.gold .tot-val{color:var(--gold)}
+.inst-table{width:100%;border-collapse:collapse;font-size:14px}
+.inst-table tr{border-bottom:1px solid var(--bg2)}
+.inst-table tr:last-child{border-bottom:none}
+.inst-table td{padding:11px 8px}
+.inst-table td:first-child{color:var(--text2);font-weight:600}
+.inst-table td:last-child{text-align:right;font-weight:700;color:var(--navy);white-space:nowrap}
+.inst-table tr.highlight td:last-child{color:var(--gold);font-size:15px}
+.inst-per{font-size:11px;color:var(--text3);font-weight:400;margin-left:4px}
+.copy-btn{background:var(--navy);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.copy-btn:hover{background:var(--navy2)}
+.copy-btn.copied{background:#1A7A30}
+.summary-box{background:var(--bg);border:1.5px solid var(--bg2);border-radius:10px;padding:16px;font-family:'Sarabun',sans-serif;font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-wrap:break-word;margin:0;overflow-x:auto}
 .tot-unit{font-size:12px;color:var(--text3)}
 .bd-head{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:14px}
 .bd-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--bg2)}
@@ -353,6 +365,11 @@ select option{background:var(--white);color:var(--text)}
   </div>
 </header>
 
+<!-- แถบเตือนโหมดออฟไลน์ -->
+<div id="offline-banner" style="display:none;background:#FEF3C7;border-bottom:1.5px solid #F0C040;color:#7A5800;text-align:center;padding:9px 16px;font-size:13px;font-weight:600">
+  ⚠ โหมดออฟไลน์ — การแก้ไขจะบันทึกในเครื่องนี้เท่านั้น ไม่ขึ้นเซิร์ฟเวอร์ (ใช้ Export/Import เพื่อย้ายข้อมูล)
+</div>
+
 <!-- MAIN -->
 <div class="wrap">
 <div id="pg1" class="pg active">
@@ -409,16 +426,21 @@ select option{background:var(--white);color:var(--text)}
       <div class="res-meta" id="res-meta"></div>
     </div>
     <div class="tot-grid">
-      <div class="tot-box">
-        <div class="tot-lbl">รวมเบี้ยรายเดือน</div>
-        <div class="tot-val" id="res-monthly"></div>
-        <div class="tot-unit">บาท / เดือน</div>
-      </div>
       <div class="tot-box gold">
-        <div class="tot-lbl">รวมเบี้ยรายปี</div>
+        <div class="tot-lbl">เบี้ยรวมรายปี</div>
         <div class="tot-val" id="res-annual"></div>
         <div class="tot-unit">บาท / ปี</div>
       </div>
+      <div class="tot-box">
+        <div class="tot-lbl">เบี้ยรวมรายเดือน</div>
+        <div class="tot-val" id="res-monthly"></div>
+        <div class="tot-unit">บาท / เดือน</div>
+      </div>
+    </div>
+    <!-- ตารางงวดชำระ -->
+    <div style="padding:0 20px 20px">
+      <div class="bd-head" style="margin-bottom:10px">ทางเลือกการชำระเบี้ย</div>
+      <div id="installment-table"></div>
     </div>
   </div>
   <div class="card">
@@ -430,6 +452,16 @@ select option{background:var(--white);color:var(--text)}
         <span class="bd-total-lbl">รวมทั้งหมด</span>
         <span class="bd-total-val" id="res-total-text"></span>
       </div>
+    </div>
+  </div>
+  <!-- ข้อความสรุปสำหรับส่งลูกค้า -->
+  <div class="card">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="bd-head" style="margin-bottom:0">ข้อความสรุป (ส่งให้ลูกค้า)</div>
+        <button class="copy-btn" id="copy-btn" onclick="copySummary()">📋 คัดลอก</button>
+      </div>
+      <pre id="summary-text" class="summary-box"></pre>
     </div>
   </div>
   <div class="act-row">
@@ -453,10 +485,11 @@ select option{background:var(--white);color:var(--text)}
     </div>
     <div class="admin-body">
 
-      <!-- Login -->
+      <!-- Login (โหมดออฟไลน์เท่านั้น) -->
       <div id="admin-login">
         <div class="login-wrap">
           <h3>🔐 เข้าสู่ระบบ Admin</h3>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:12px">โหมดออฟไลน์ — ใส่รหัสผ่าน Admin</div>
           <label class="lbl">รหัสผ่าน</label>
           <input type="password" id="admin-pw" placeholder="ใส่รหัสผ่าน" onkeydown="if(event.key==='Enter')adminLogin()">
           <div class="login-err" id="login-err">รหัสผ่านไม่ถูกต้อง</div>
@@ -671,12 +704,14 @@ async function doLogout(){
 function useOffline(){
   OFFLINE_MODE = true;
   document.getElementById('auth-overlay').classList.add('hidden');
+  const b=document.getElementById('offline-banner'); if(b) b.style.display='block';
   bootApp();
 }
 
 // เข้าสู่แอปหลังล็อกอินสำเร็จ
 async function enterApp(){
   document.getElementById('auth-overlay').classList.add('hidden');
+  const b=document.getElementById('offline-banner'); if(b) b.style.display='none';
   // ดึงตารางเบี้ยล่าสุดจากเซิร์ฟเวอร์
   try {
     const r = await api('get_rates', {});
@@ -952,6 +987,17 @@ function checkCanCalc(){
 }
 
 function fmt(n){return n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmt0(n){return Math.round(n).toLocaleString('th-TH')}
+
+// สัดส่วนงวดชำระ (อิงเบี้ยรายปี)
+const INSTALLMENT = [
+  {key:'year',  label:'รายปี',     factor:1,    per:'ปี'},
+  {key:'6mo',   label:'ราย 6 เดือน',factor:0.52, per:'งวด'},
+  {key:'3mo',   label:'ราย 3 เดือน',factor:0.27, per:'งวด'},
+  {key:'1mo',   label:'รายเดือน',   factor:0.09, per:'เดือน'}
+];
+
+let LAST_SUMMARY = '';
 
 function calculate(){
   const name=document.getElementById('inp-name').value.trim();
@@ -967,9 +1013,21 @@ function calculate(){
   const totalAnnual=breakdown.filter(b=>b.prem).reduce((s,b)=>s+b.prem,0);
   document.getElementById('res-name').textContent=name?'คุณ'+name:'ผู้เอาประกัน';
   document.getElementById('res-meta').textContent='อายุ '+appState.age+(typeof appState.age==='number'?' ปี':'')+' · เพศ'+appState.gender+' · '+breakdown.filter(b=>b.prem).length+' แผน';
-  document.getElementById('res-monthly').textContent='฿'+fmt(totalAnnual/12);
+  document.getElementById('res-monthly').textContent='฿'+fmt(totalAnnual*0.09);
   document.getElementById('res-annual').textContent='฿'+fmt(totalAnnual);
-  document.getElementById('res-total-text').textContent='฿'+Math.round(totalAnnual).toLocaleString('th-TH')+'/ปี';
+  document.getElementById('res-total-text').textContent='฿'+fmt0(totalAnnual)+'/ปี';
+
+  // ตารางงวดชำระ
+  document.getElementById('installment-table').innerHTML =
+    '<table class="inst-table"><tbody>'+
+    INSTALLMENT.map(it=>{
+      const amt=totalAnnual*it.factor;
+      const hl = it.key==='year' ? ' class="highlight"' : '';
+      return '<tr'+hl+'><td>'+it.label+'</td><td>฿'+fmt0(amt)+'<span class="inst-per">/'+it.per+'</span></td></tr>';
+    }).join('')+
+    '</tbody></table>';
+
+  // รายละเอียดแต่ละแผน
   document.getElementById('res-breakdown').innerHTML=breakdown.map(b=>`
     <div class="bd-row">
       <div class="bd-l">
@@ -978,10 +1036,16 @@ function calculate(){
       </div>
       <div class="bd-r">
         ${b.prem
-          ?`<div class="bd-ann">฿${Math.round(b.prem).toLocaleString('th-TH')}<span style="font-size:11px;color:var(--text2);margin-left:2px">/ปี</span></div><div class="bd-mo">฿${fmt(b.prem/12)}/เดือน</div>`
+          ?`<div class="bd-ann">฿${fmt0(b.prem)}<span style="font-size:11px;color:var(--text2);margin-left:2px">/ปี</span></div><div class="bd-mo">฿${fmt(b.prem*0.09)}/เดือน</div>`
           :`<div class="bd-na">ไม่พบข้อมูล</div>`}
       </div>
     </div>`).join('');
+
+  // สร้างข้อความสรุปสำหรับส่งลูกค้า
+  LAST_SUMMARY = buildSummary(name, breakdown, totalAnnual);
+  document.getElementById('summary-text').textContent = LAST_SUMMARY;
+  const cb=document.getElementById('copy-btn'); cb.classList.remove('copied'); cb.textContent='📋 คัดลอก';
+
   document.getElementById('pg1').classList.remove('active');
   document.getElementById('pg2').classList.add('active');
   window.scrollTo(0,0);
@@ -993,8 +1057,50 @@ function calculate(){
     customer_age: String(appState.age),
     plans: breakdown.map(b=>({plan:b.plan, sum:b.sum, label:b.label, prem:b.prem})),
     total_annual: Math.round(totalAnnual),
-    total_monthly: Math.round(totalAnnual/12)
+    total_monthly: Math.round(totalAnnual*0.09)
   });
+}
+
+// สร้างข้อความสรุปตามรูปแบบที่กำหนด
+function buildSummary(name, breakdown, totalAnnual){
+  const lines=[];
+  lines.push('สรุปแผนประกัน Liberty Team');
+  if(name) lines.push('ลูกค้า: คุณ'+name);
+  lines.push('เพศ'+appState.gender+' อายุ '+appState.age+(typeof appState.age==='number'?' ปี':''));
+  lines.push('');
+  breakdown.forEach(b=>{
+    if(b.id==='hb'){
+      // ชดเชยรายได้: วันละ xxx บาท
+      lines.push(b.label+' : วันละ '+fmt0(Number(b.sum))+' บาท');
+    } else {
+      lines.push(b.label+' : "'+b.plan+'" ทุนประกัน '+(b.sum==='(Deduct)'?'(Deduct)':fmt0(Number(b.sum)))+' บาท');
+    }
+  });
+  lines.push('');
+  lines.push('สรุปรวมเบี้ย '+fmt0(totalAnnual)+' บาท/ปี');
+  lines.push('— รายปี: '+fmt0(totalAnnual)+' บาท');
+  lines.push('— ราย 6 เดือน: '+fmt0(totalAnnual*0.52)+' บาท/งวด');
+  lines.push('— ราย 3 เดือน: '+fmt0(totalAnnual*0.27)+' บาท/งวด');
+  lines.push('— รายเดือน: '+fmt0(totalAnnual*0.09)+' บาท/เดือน');
+  return lines.join('\n');
+}
+
+// คัดลอกข้อความสรุปไป clipboard
+function copySummary(){
+  const cb=document.getElementById('copy-btn');
+  const done=()=>{ cb.classList.add('copied'); cb.textContent='✓ คัดลอกแล้ว'; setTimeout(()=>{cb.classList.remove('copied');cb.textContent='📋 คัดลอก';},2000); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(LAST_SUMMARY).then(done).catch(()=>fallbackCopy(done));
+  } else {
+    fallbackCopy(done);
+  }
+}
+function fallbackCopy(done){
+  const ta=document.createElement('textarea');
+  ta.value=LAST_SUMMARY; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ alert('คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตนเอง'); }
+  document.body.removeChild(ta);
 }
 
 function resetForm(){
@@ -1008,17 +1114,23 @@ function resetForm(){
 let adminLoggedIn = false;
 
 function openAdmin(){
+  // เฉพาะ admin ที่ล็อกอินแล้วเท่านั้น (ปุ่มนี้ซ่อนสำหรับ agent อยู่แล้ว)
+  // โหมดออฟไลน์: ยังใช้รหัสเดิมกันเผื่อเปิดไฟล์ตรงๆ ไม่ผ่าน server
   document.getElementById('admin-overlay').classList.add('show');
-  document.getElementById('admin-pw').value='';
-  document.getElementById('login-err').classList.remove('show');
-  if(adminLoggedIn){
+  const needPw = OFFLINE_MODE && !(CURRENT_USER && CURRENT_USER.role==='admin');
+  if(needPw && !adminLoggedIn){
+    // โหมดออฟไลน์ ยังไม่ปลดล็อก -> ขอรหัส
+    document.getElementById('admin-pw').value='';
+    const errEl=document.getElementById('login-err'); if(errEl) errEl.classList.remove('show');
+    document.getElementById('admin-login').style.display='block';
+    document.getElementById('admin-dash').style.display='none';
+  } else {
+    // ล็อกอินเป็น admin แล้ว -> เข้าหลังบ้านได้เลย
+    adminLoggedIn=true;
     document.getElementById('admin-login').style.display='none';
     document.getElementById('admin-dash').style.display='block';
     renderAdminPlans();
     populateRateSelects();
-  } else {
-    document.getElementById('admin-login').style.display='block';
-    document.getElementById('admin-dash').style.display='none';
   }
 }
 
@@ -1484,6 +1596,7 @@ function downloadApp(){
   const bf = clone.querySelector('#btn-female'); if(bf) bf.classList.remove('on');
   const ag = clone.querySelector('#sel-age'); if(ag){ ag.querySelectorAll('option').forEach((o,i)=>{ if(i>1) o.remove(); }); }
   const rb = clone.querySelector('#res-breakdown'); if(rb) rb.innerHTML='';
+  const ob = clone.querySelector('#offline-banner'); if(ob) ob.style.display='none';
 
   // 5) ล้างค่าที่กรอกไว้ใน input/textarea (กันค่าค้างติดไปในไฟล์)
   clone.querySelectorAll('input').forEach(el=>{ el.removeAttribute('value'); el.value=''; });
@@ -1533,7 +1646,7 @@ function importData(e){
   const file=e.target.files[0];
   if(!file) return;
   const reader=new FileReader();
-  reader.onload=ev=>{
+  reader.onload=async ev=>{
     try{
       const data=JSON.parse(ev.target.result);
       if(data.groups){
@@ -1541,11 +1654,26 @@ function importData(e){
         saveDB();
         renderAdminPlans();
         renderPlans();
-        alert('✓ Import ข้อมูลเรียบร้อย');
+        // ถ้าออนไลน์ -> ถามว่าจะอัปขึ้นเซิร์ฟเวอร์เลยไหม
+        if(!OFFLINE_MODE && AUTH_TOKEN){
+          if(confirm('✓ Import ข้อมูลลงเครื่องแล้ว\n\nต้องการอัปขึ้นเซิร์ฟเวอร์เลยไหม? (ทีมจะเห็นข้อมูลนี้)')){
+            try{
+              await api('save_rates', {rates: DB});
+              alert('✓ อัปขึ้นเซิร์ฟเวอร์เรียบร้อย — ทีมจะเห็นข้อมูลใหม่เมื่อเปิดแอป');
+            }catch(err){
+              alert('Import สำเร็จ แต่อัปขึ้นเซิร์ฟเวอร์ไม่ได้: '+err.message+'\nลองกด "บันทึกทั้งหมด" อีกครั้ง');
+            }
+          } else {
+            alert('Import ลงเครื่องแล้ว — กด "บันทึกทั้งหมด" เมื่อพร้อมอัปขึ้นเซิร์ฟเวอร์');
+          }
+        } else {
+          alert('✓ Import ข้อมูลเรียบร้อย (โหมดออฟไลน์ — ยังไม่ขึ้นเซิร์ฟเวอร์)');
+        }
       } else alert('ไฟล์ JSON ไม่ถูกต้อง');
     } catch{alert('ไม่สามารถอ่านไฟล์ได้')}
   };
   reader.readAsText(file);
+  e.target.value='';  // เคลียร์ เผื่อเลือกไฟล์เดิมซ้ำ
 }
 
 function resetData(){
